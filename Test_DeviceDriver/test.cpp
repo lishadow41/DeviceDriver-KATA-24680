@@ -7,47 +7,43 @@
 using testing::_;
 using testing::Return;
 
-TEST(DeviceDriverTest, ReadZeroTest) {
+class DeviceDriverTestFixture : public testing::Test {
+public:
 	MockFlashMemoryDevice mock_device;
+	DeviceDriver app{ &mock_device };
+
+	const int EMPTY_AREA_VALUE = 0xFF;
+};
+
+TEST_F(DeviceDriverTestFixture, ReadZeroTest) {
 	EXPECT_CALL(mock_device, read(_))
 		.Times(5)
-		.WillRepeatedly(Return(0));
+		.WillRepeatedly(Return(0x00));
 
-	DeviceDriver app(&mock_device);
-	int expected = 0x00;
-	int actual = app.read(0x00);
-
-	EXPECT_EQ(actual, expected);
+	EXPECT_EQ(app.read(0x00), 0x00);
 }
 
-TEST(DeviceDriverTest, ReadFailExceptionTest) {
-	MockFlashMemoryDevice mock_device;
+TEST_F(DeviceDriverTestFixture, ReadFailExceptionTest) {
 	EXPECT_CALL(mock_device, read(_))
 		.WillOnce(Return(1))
 		.WillRepeatedly(Return(0x00));
 
-	DeviceDriver app(&mock_device);
-
 	EXPECT_THROW(app.read(0x00), ReadFailException);
 }
 
-TEST(DeviceDriverTest, WriteAtEmptyArea) {
-	MockFlashMemoryDevice mock_device;
+TEST_F(DeviceDriverTestFixture, WriteAtEmptyArea) {
 	EXPECT_CALL(mock_device, read(_))
 		.Times(5)
-		.WillRepeatedly(Return(0xFF));
+		.WillRepeatedly(Return(EMPTY_AREA_VALUE));
 
-	DeviceDriver app(&mock_device);
 	app.write(0x00, 0x05);
 }
 
-TEST(DeviceDriverTest, WriteAtAlreadyFilledArea) {
-	MockFlashMemoryDevice mock_device;
+TEST_F(DeviceDriverTestFixture, WriteAtAlreadyFilledArea) {
 	EXPECT_CALL(mock_device, read(_))
 		.Times(5)
-		.WillRepeatedly(Return(0));
+		.WillRepeatedly(Return(0x00));
 
-	DeviceDriver app(&mock_device);
 	EXPECT_THROW(app.write(0x00, 0x05), WriteFailException);
 }
 
